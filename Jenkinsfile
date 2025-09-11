@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = "docker.io"
-        DOCKER_IMAGE = "your-dockerhub-user/flask-app"
+        DOCKER_IMAGE = "milad6745/flask-app"
         TAG = "latest"
     }
 
