@@ -1,16 +1,50 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_REGISTRY = "docker.io"
+        DOCKER_IMAGE = "your-dockerhub-user/flask-app"
+        TAG = "latest"
+    }
+
     stages {
-        stage('Build Docker Compose') {
+        stage('Checkout') {
             steps {
-                sh 'docker-compose build'
+                git branch: 'main', url: 'https://github.com/milad6745/simple-jenkins.git'
             }
         }
 
-        stage('Run Docker Compose') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker-compose up -d'
+                script {
+                    sh 'docker build -t $DOCKER_IMAGE:$TAG .'
+                }
+            }
+        }
+
+        stage('Scan with Anchore') {
+            steps {
+                script {
+                    sh '''
+                    anchore-cli image add $DOCKER_IMAGE:$TAG
+                    anchore-cli image wait $DOCKER_IMAGE:$TAG
+                    anchore-cli evaluate check $DOCKER_IMAGE:$TAG
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                expression {
+                    // شرط فقط اگر Anchore OK بود
+                    def result = sh(script: "anchore-cli evaluate check $DOCKER_IMAGE:$TAG | grep pass || true", returnStdout: true).trim()
+                    return result.contains("pass")
+                }
+            }
+            steps {
+                echo "Deploying Application..."
+                sh './deploy.sh'  // اینجا می‌تونی دستور kubectl apply یا docker run بذاری
             }
         }
     }
