@@ -2,50 +2,31 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = "docker.io"
-        DOCKER_IMAGE = "milad6745/flask-app"
-        TAG = "latest"
+        REPO_URL = ''  // آدرس گیتهاب خودت
+        BRANCH   = 'main'                                  // برنچ مورد نظر
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/milad6745/simple-jenkins.git'
+                git branch: "${BRANCH}", url: "${REPO_URL}"
             }
+       
         }
 
-        stage('Build Docker Image') {
+        stage('Run Containers (Optional)') {
             steps {
-                script {
-                    sh 'docker build -t $DOCKER_IMAGE:$TAG .'
-                }
+                sh 'docker-compose up -d'
             }
         }
+    }
 
-        stage('Scan with Anchore') {
-            steps {
-                script {
-                    sh '''
-                    anchore-cli image add $DOCKER_IMAGE:$TAG
-                    anchore-cli image wait $DOCKER_IMAGE:$TAG
-                    anchore-cli evaluate check $DOCKER_IMAGE:$TAG
-                    '''
-                }
-            }
+    post {
+        success {
+            echo '✅ Build and deploy successful!'
         }
-
-        stage('Deploy') {
-            when {
-                expression {
-                    // شرط فقط اگر Anchore OK بود
-                    def result = sh(script: "anchore-cli evaluate check $DOCKER_IMAGE:$TAG | grep pass || true", returnStdout: true).trim()
-                    return result.contains("pass")
-                }
-            }
-            steps {
-                echo "Deploying Application..."
-                sh './deploy.sh'  // اینجا می‌تونی دستور kubectl apply یا docker run بذاری
-            }
+        failure {
+            echo '❌ Pipeline failed!'
         }
     }
 }
