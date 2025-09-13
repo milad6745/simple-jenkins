@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REPO_URL = ''  // آدرس گیتهاب خودت
+        REPO_URL = 'https://github.com/milad6745/simple-jenkins.git'  // آدرس گیتهاب خودت
         BRANCH   = 'main'                                  // برنچ مورد نظر
     }
 
